@@ -1,3 +1,6 @@
+"""
+python main.py --lr 0.1 --net_type wide-resnet --depth 28 --widen_factor 10 --dropout 0.3 --dataset cifar100
+"""
 from __future__ import print_function
 
 import torch
@@ -242,7 +245,7 @@ print('| Optimizer = ' + str(optim_type))
 alpha1 = 0.01
 t_train = 10*t_inf
 anti_hebb = False
-
+breakpoint()
 elapsed_time = 0
 for epoch in range(start_epoch, start_epoch+num_epochs):
     start_time = time.time()

@@ -49,11 +49,11 @@ class TexpNormalization(nn.Module):
         else:
             return torch.exp(self.tilt*input)/torch.sum(torch.exp(self.tilt*input),dim=(1,2,3),keepdim=True)
 
-    '''def __repr__(self) -> str:
+    def __repr__(self) -> str:
         s = "TexpNormalization("
         s += f'tilt={self.tilt}_filts_only_{self.texp_across_filts_only}'
         s += ")"
-        return s'''
+        return s
 
 
 
@@ -79,12 +79,10 @@ class AdaptiveThreshold(nn.Module):
         else:
             return self._thresholding(input, means)
 
-    '''    def __repr__(self) -> str:
+    def __repr__(self) -> str:
         if self.means_plus_std:
-            s = f"AdaptiveThreshold(mean_plus_std)"
-        else:
-            s = f"AdaptiveThreshold(std_scalar={self.std_scalar})"
-        return s'''
+            s = f"AdaptiveThreshold(mean_plus_std_std_scale={self.std_scalar})"
+        return s
 
 
 from typing import Dict, Iterable, Callable
