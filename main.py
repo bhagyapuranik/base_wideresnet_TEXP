@@ -147,11 +147,11 @@ if use_cuda:
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
     cudnn.benchmark = True
 
-texp_train = False
+texp_train = True
 if texp_train:
-    t_inf = 8/np.sqrt(27)
-    alpha1 = 0.01
-    t_train = 2*t_inf
+    t_inf = 1/np.sqrt(27)
+    alpha1 = 0.001
+    t_train = 5*t_inf
     anti_hebb = False
 else:
     t_inf = 0.0
@@ -188,8 +188,8 @@ def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False):
 
         if texp_train:
             wt_texp_obj = -alpha*tilted_loss(activations=net.layer_outputs['module.conv1.0'], tilt=tilt_train, anti_hebb=anti_hebb)
-            #if net.module.conv1.0.weight.grad is not None:
-            #    net.module.conv1.0.weight.gard.zero_()
+            if net.module.conv1[0].weight.grad is not None:
+                net.module.conv1[0].weight.grad.zero_()
             wt_texp_obj.backward(retain_graph=True)
 
         loss = criterion(outputs, targets)  # Loss
