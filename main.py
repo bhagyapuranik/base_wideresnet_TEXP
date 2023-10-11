@@ -219,17 +219,19 @@ def test(epoch):
         if acc > best_acc:
             print('| Saving Best model...\t\t\tTop1 = %.2f%%' %(acc))
             state = {
-                    'net':net.state_dict(),
+                    'state_dict':net.module.state_dict(),
                     'acc':acc,
                     'epoch':epoch,
             }
+
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
             save_point = './checkpoint/'+args.dataset+os.sep
             if not os.path.isdir(save_point):
                 os.mkdir(save_point)
-            breakpoint()
             torch.save(state, save_point+file_name+'.pt')
+            #new, _ = getNetwork(args)
+            #new.load_state_dict(torch.load(os.path.join(os.getcwd(),'checkpoint/cifar100/wide-resnet-28x10.pt'))['state_dict'])            breakpoint()
             best_acc = acc
 
 print('\n[Phase 3] : Training model')
