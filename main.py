@@ -1,5 +1,5 @@
 """
-python main.py --lr 0.1 --net_type wide-resnet --depth 28 --widen_factor 10 --dropout 0.3 --dataset cifar100
+python main.py --lr 0.1 --net_type wide-resnet --depth 28 --widen_factor 10 --dropout 0.0 --dataset cifar100
 """
 from __future__ import print_function
 
@@ -147,16 +147,23 @@ if use_cuda:
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
     cudnn.benchmark = True
 
+texp_train = False
+if texp_train:
+    t_inf = 8/np.sqrt(27)
+    alpha1 = 0.01
+    t_train = 2*t_inf
+    anti_hebb = False
+else:
+    t_inf = 0.0
+    alpha1 = 0.0
+    t_train = 0.0
+    anti_hebb = False  
 
-t_inf = 1/np.sqrt(27)
-alpha1 = 0.01
-t_train = 10*t_inf
-anti_hebb = False
+if texp_train:
+    layers = [ImplicitNormalizationConv(3,16,kernel_size=(3,3),stride=(1,1),padding=(1,1)), TexpNormalization(tilt=t_inf), AdaptiveThreshold(std_scalar=0.5, mean_plus_std=True)]
+    net.module.conv1 = torch.nn.Sequential(*layers)
 
-layers = [ImplicitNormalizationConv(3,16,kernel_size=(3,3),stride=(1,1),padding=(1,1)), TexpNormalization(tilt=t_inf), AdaptiveThreshold(std_scalar=0.5, mean_plus_std=True)]
-net.module.conv1 = torch.nn.Sequential(*layers)
-
-net = SpecificLayerTypeOutputExtractor_wrapper(model=net, layer_type=torch.nn.Conv2d)
+    net = SpecificLayerTypeOutputExtractor_wrapper(model=net, layer_type=torch.nn.Conv2d)
 net.cuda()
 criterion = nn.CrossEntropyLoss()
 
@@ -177,7 +184,8 @@ def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False):
         inputs, targets = Variable(inputs), Variable(targets)
         outputs = net(inputs)               # Forward Propagation
 
-        wt_texp_obj = 0
+        wt_texp_obj = torch.zeros(1)
+
         if texp_train:
             wt_texp_obj = -alpha*tilted_loss(activations=net.layer_outputs['module.conv1.0'], tilt=tilt_train, anti_hebb=anti_hebb)
             #if net.module.conv1.0.weight.grad is not None:
@@ -192,7 +200,6 @@ def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
-
         sys.stdout.write('\r')
         sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\tLoss: %.4f TEXP_loss: %.4f Acc@1: %.3f%%'
                 %(epoch, num_epochs, batch_idx+1,
@@ -236,7 +243,8 @@ def test(epoch):
             save_point = './checkpoint/'+args.dataset+os.sep
             if not os.path.isdir(save_point):
                 os.mkdir(save_point)
-            torch.save(state, save_point+file_name+'.pt')
+            file_save_name = file_name+'_'+str(t_inf)+'_'+str(t_train)+'_'+str(alpha1)+'_'+str(anti_hebb)
+            torch.save(state, save_point+file_save_name+'.pt')
             #new, _ = getNetwork(args)
             #new.load_state_dict(torch.load(os.path.join(os.getcwd(),'checkpoint/cifar100/wide-resnet-28x10.pt'))['state_dict'])            breakpoint()
             best_acc = acc
@@ -251,7 +259,7 @@ elapsed_time = 0
 for epoch in range(start_epoch, start_epoch+num_epochs):
     start_time = time.time()
 
-    train(epoch, texp_train=True, alpha=alpha1, tilt_train=t_train, anti_hebb=anti_hebb)
+    train(epoch, texp_train=texp_train, alpha=alpha1, tilt_train=t_train, anti_hebb=anti_hebb)
     test(epoch)
 
     epoch_time = time.time() - start_time
