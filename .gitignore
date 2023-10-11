@@ -102,6 +102,8 @@ ENV/
 
 # Torch
 *.t7
+*.pt
+*.pth
 
 # Data
 data/
