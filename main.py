@@ -149,6 +149,10 @@ if use_cuda:
 
 
 t_inf = 1/np.sqrt(27)
+alpha1 = 0.01
+t_train = 10*t_inf
+anti_hebb = False
+
 layers = [ImplicitNormalizationConv(3,16,kernel_size=(3,3),stride=(1,1),padding=(1,1)), TexpNormalization(tilt=t_inf), AdaptiveThreshold(std_scalar=0.5, mean_plus_std=True)]
 net.module.conv1 = torch.nn.Sequential(*layers)
 
@@ -242,10 +246,7 @@ print('| Training Epochs = ' + str(num_epochs))
 print('| Initial Learning Rate = ' + str(args.lr))
 print('| Optimizer = ' + str(optim_type))
 
-alpha1 = 0.01
-t_train = 10*t_inf
-anti_hebb = False
-breakpoint()
+
 elapsed_time = 0
 for epoch in range(start_epoch, start_epoch+num_epochs):
     start_time = time.time()
