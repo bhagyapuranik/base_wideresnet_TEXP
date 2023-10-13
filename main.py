@@ -149,9 +149,9 @@ if use_cuda:
 
 texp_train = True
 if texp_train:
-    t_inf = 1/np.sqrt(27)
-    alpha1 = 0.001
-    t_train = 5*t_inf
+    t_inf = 0.384 # 1/sqrt(27) = 0.192
+    alpha1 = 0.0005
+    t_train = 2*0.384#1*t_inf
     anti_hebb = False
 else:
     t_inf = 0.0
@@ -160,7 +160,7 @@ else:
     anti_hebb = False  
 
 if texp_train:
-    layers = [ImplicitNormalizationConv(3,16,kernel_size=(3,3),stride=(1,1),padding=(1,1)), TexpNormalization(tilt=t_inf), AdaptiveThreshold(std_scalar=0.5, mean_plus_std=True)]
+    layers = [ImplicitNormalizationConv(3,16,kernel_size=(3,3),stride=(1,1),padding=(1,1), bias=False), TexpNormalization(tilt=t_inf), AdaptiveThreshold(std_scalar=0.5, mean_plus_std=True)]
     net.module.conv1 = torch.nn.Sequential(*layers)
 
     net = SpecificLayerTypeOutputExtractor_wrapper(model=net, layer_type=torch.nn.Conv2d)
@@ -191,6 +191,9 @@ def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False):
             if net.module.conv1[0].weight.grad is not None:
                 net.module.conv1[0].weight.grad.zero_()
             wt_texp_obj.backward(retain_graph=True)
+            if torch.isnan(wt_texp_obj):
+                print('wt_texp_obj is nan')
+                breakpoint()
 
         loss = criterion(outputs, targets)  # Loss
         loss.backward()  # Backward Propagation
