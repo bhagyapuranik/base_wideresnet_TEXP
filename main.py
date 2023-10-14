@@ -23,6 +23,7 @@ from networks import *
 from torch.autograd import Variable
 
 from texp_utils import *
+from deepillusion.torchattacks import PGD
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR-10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning_rate')
@@ -148,10 +149,11 @@ if use_cuda:
     cudnn.benchmark = True
 
 texp_train = True
+do_adv_train = False
 if texp_train:
-    t_inf = 0.384 # 1/sqrt(27) = 0.192
-    alpha1 = 0.0005
-    t_train = 0.384#1*t_inf
+    t_inf = 0.11 # 1/sqrt(27) = 0.192
+    alpha1 = 0.001
+    t_train = 2*0.768#1*t_inf
     anti_hebb = False
 else:
     t_inf = 0.0
@@ -168,7 +170,7 @@ net.cuda()
 criterion = nn.CrossEntropyLoss()
 
 # Training
-def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False):
+def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False, adv_train=False):
     net.train()
     net.training = True
     train_loss = 0
@@ -182,6 +184,15 @@ def train(epoch, texp_train=False, alpha=0.01, tilt_train=1, anti_hebb=False):
             inputs, targets = inputs.cuda(), targets.cuda() # GPU settings
         optimizer.zero_grad()
         inputs, targets = Variable(inputs), Variable(targets)
+
+        if adv_train:
+            # Adversarial Training
+            attack_params = {'attack': 'PGD', 'norm': 'inf', 'eps': 0.00784, 'alpha': 0.04, 'step_size': 0.002, 'num_steps': 10, 'random_start': True, 'num_restarts': 1, 'loss': 'cross_entropy'}
+            perturbs = PGD(net=net, x=inputs, y_true=targets, data_params={
+                "x_min": 0, "x_max": 1}, attack_params=attack_params, verbose=False)            
+            inputs += perturbs
+
+
         outputs = net(inputs)               # Forward Propagation
 
         wt_texp_obj = torch.zeros(1)
@@ -262,7 +273,7 @@ elapsed_time = 0
 for epoch in range(start_epoch, start_epoch+num_epochs):
     start_time = time.time()
 
-    train(epoch, texp_train=texp_train, alpha=alpha1, tilt_train=t_train, anti_hebb=anti_hebb)
+    train(epoch, texp_train=texp_train, alpha=alpha1, tilt_train=t_train, anti_hebb=anti_hebb, adv_train=do_adv_train)
     test(epoch)
 
     epoch_time = time.time() - start_time
@@ -271,3 +282,24 @@ for epoch in range(start_epoch, start_epoch+num_epochs):
 
 print('\n[Phase 4] : Testing model')
 print('* Test results : Acc@1 = %.2f%%' %(best_acc))
+
+
+# Std, noise and common corruptions test
+standard_test(model=net, test_loader=testloader,
+                                  verbose=True, progress_bar=False)
+
+
+num_expts_noisy = 5
+noisy_acc = [None]*num_expts_noisy
+noisy_acc_top5 = [None]*num_expts_noisy
+noisy_loss = [None]*num_expts_noisy
+std_dev = 0.1
+for i in range(num_expts_noisy):
+    noise_std = std_dev
+    noisy_acc[i], noisy_acc_top5[i], noisy_loss[i], _ = test_noisy(net, testloader, noise_std)
+print(f'Noise std {noise_std:.4f}: Test  \t loss: {sum(noisy_loss)/num_expts_noisy:.4f} \t acc: {sum(noisy_acc)/num_expts_noisy:.4f} \t top5 acc: {sum(noisy_acc_top5)/num_expts_noisy:.4f}')
+
+
+
+test_common_corruptions('cuda', net)
+
