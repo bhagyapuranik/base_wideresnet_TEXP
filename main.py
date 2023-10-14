@@ -151,7 +151,7 @@ texp_train = True
 if texp_train:
     t_inf = 0.384 # 1/sqrt(27) = 0.192
     alpha1 = 0.0005
-    t_train = 2*0.384#1*t_inf
+    t_train = 0.384#1*t_inf
     anti_hebb = False
 else:
     t_inf = 0.0
@@ -246,7 +246,7 @@ def test(epoch):
             save_point = './checkpoint/'+args.dataset+os.sep
             if not os.path.isdir(save_point):
                 os.mkdir(save_point)
-            file_save_name = file_name+'_'+str(t_inf)+'_'+str(t_train)+'_'+str(alpha1)+'_'+str(anti_hebb)
+            file_save_name = file_name+'_noBias_'+str(t_inf)+'_'+str(t_train)+'_'+str(alpha1)+'_'+str(anti_hebb)
             torch.save(state, save_point+file_save_name+'.pt')
             #new, _ = getNetwork(args)
             #new.load_state_dict(torch.load(os.path.join(os.getcwd(),'checkpoint/cifar100/wide-resnet-28x10.pt'))['state_dict'])            breakpoint()

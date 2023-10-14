@@ -14,7 +14,7 @@ def conv_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         init.xavier_uniform_(m.weight, gain=np.sqrt(2))
-        init.constant_(m.bias, 0)
+        #init.constant_(m.bias, 0)
     elif classname.find('BatchNorm') != -1:
         init.constant_(m.weight, 1)
         init.constant_(m.bias, 0)
